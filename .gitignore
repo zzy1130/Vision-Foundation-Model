@@ -1,0 +1,21 @@
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local data & temporary downloaded images
+CLIP/demo_images/
+CLIP/images/
+.DS_Store
+
+# IDE configuration
+.vscode/
+.idea/

@@ -1,12 +1,12 @@
 # CLIP (Contrastive Language-Image Pre-training) 技术演进与深度研究
 
-本项目第一阶段聚焦于视觉语言模型（VLM）的开山之作 —— **CLIP**，以及其后续数代在**训练效率**、**损失函数优化**、**网络架构规模**等方向的重要迭代。
+本项目第一阶段聚焦于视觉语言模型（VLM）的开山之作 —— <strong>CLIP</strong>，以及其后续数代在 <strong>训练效率</strong>、<strong>损失函数优化</strong>、<strong>网络架构规模</strong> 等方向的重要迭代。
 
 ---
 
 ## 1. 经典基线：OpenAI CLIP (2021)
 
-OpenAI 于 2021 年提出 CLIP（Learning Transferable Visual Models From Natural Language Supervision），首次确立了以**双塔对比学习（Dual-Encoder Contrastive Learning）**进行大规模图文匹配的范式。
+OpenAI 于 2021 年提出 CLIP（Learning Transferable Visual Models From Natural Language Supervision），首次确立了以 <strong>双塔对比学习（Dual-Encoder Contrastive Learning）</strong> 进行大规模图文匹配的范式。
 
 ![CLIP Architecture](images/openai_clip.png)
 
@@ -60,7 +60,7 @@ graph TD
 *   **迭代亮点**：证明了只要数据量和参数量足够，开源的复现模型同样能在性能上与闭源模型并驾齐驱，甚至在 Zero-shot 上取得更好的成绩。
 
 ### 2.2 FLIP：掩码图文对比学习 (Meta, 2022)
-针对 CLIP **训练慢、计算代价高**的问题，Meta 提出了 FLIP (Fast Language-Image Pre-training)。
+针对 CLIP <strong>训练慢、计算代价高</strong> 的问题，Meta 提出了 FLIP (Fast Language-Image Pre-training)。
 *   **核心机制**：
     *   在进入 ViT 编码器之前，随机遮蔽（Masking）大比例的图像 Patch（例如 50% ~ 75%）。
     *   文本端不做修改，图像端只编码未被遮蔽的 Patch。
@@ -76,7 +76,7 @@ CLIPA 提出了一个“逆向缩放定律”（An Inverse Scaling Law for CLIP 
 *   **迭代亮点**：允许在极低的算力（例如几张消费级显卡）下训练出与经典大算力 CLIP 媲美的模型，大大降低了学术界入局 VLM 预训练的门槛。
 
 ### 2.4 EVA-CLIP：视觉预训练与超大规模对齐 (BAAI, 2023)
-EVA-CLIP 将**视觉自监督学习（如 Masked Image Modeling）**与多模态对齐相结合。
+EVA-CLIP 将 <strong>视觉自监督学习（如 Masked Image Modeling）</strong> 与多模态对齐相结合。
 *   **核心机制**：
     *   不直接从头（Scratch）训练图像编码器，而是使用 EVA（一种通过掩码图像建模预训练的 ViT）作为图像编码器的初始化。
     *   这种初始化提供了极强的视觉特征表征能力。
@@ -85,7 +85,7 @@ EVA-CLIP 将**视觉自监督学习（如 Masked Image Modeling）**与多模态
     *   **卓越性能**：在 ImageNet Zero-shot 分类中取得当时的 SOTA（State-of-the-Art）。
 
 ### 2.5 SigLIP：从 Softmax 到 Sigmoid 损失的革命 (Google, 2023)
-SigLIP (Sigmoid Loss for Language-Image Pre-training) 是目前 CLIP 演进中**最重要的损失函数优化**。
+SigLIP (Sigmoid Loss for Language-Image Pre-training) 是目前 CLIP 演进中 <strong>最重要的损失函数优化</strong>。
 
 ![SigLIP vs CLIP](images/siglip.png)
 
@@ -95,7 +95,7 @@ SigLIP (Sigmoid Loss for Language-Image Pre-training) 是目前 CLIP 演进中**
 2.  **不适用于小 Batch**：如果 Batch Size 较小，Softmax 容易过拟合到 Batch 内的干扰样本。
 
 #### 2.5.2 Sigmoid 损失的数学原理
-SigLIP 丢弃了 Softmax，将对比学习转化为了 **N × N** 个**独立的二分类问题（Binary Classification Task）**。
+SigLIP 丢弃了 Softmax，将对比学习转化为了 **N × N** 个 <strong>独立的二分类问题（Binary Classification Task）</strong>。
 对于每一个图文对 (i, j)，模型预测它们是否匹配：
 *   当 i = j 时，目标标签 y<sub>i,j</sub> = 1（正样本）。
 *   当 i ≠ j 时，目标标签 y<sub>i,j</sub> = -1（负样本）。
@@ -127,17 +127,17 @@ SigLIP 丢弃了 Softmax，将对比学习转化为了 **N × N** 个**独立的
 | **FLIP (Meta)** | 2022 | 图像掩码 (Masking) | 训练计算成本高、图像特征冗余 | 极适合预算有限但数据量巨大的大规模预训练。 |
 | **CLIPA** | 2023 | 动态分辨率与 Packing | 预训练成本太高 | 用极低分辨率起手，适合学术界快速迭代和验证。 |
 | **EVA-CLIP** | 2023 | 视觉自监督预训练权重 | 超大模型预训练的不稳定性 | 表征性能天花板，适用于对 Zero-shot 性能有极致要求的场景。 |
-| **SigLIP (Google)**| 2023 | **Sigmoid Loss 替代 Softmax** | 分布式多卡通信瓶颈及显存 O(N²) 爆炸 | 当前最前沿、效率最高的对齐方案，是现代端侧 VLM 的首选。 |
+| **SigLIP (Google)**| 2023 | <strong>Sigmoid Loss 替代 Softmax</strong> | 分布式多卡通信瓶颈及显存 O(N²) 爆炸 | 当前最前沿、效率最高的对齐方案，是现代端侧 VLM 的首选。 |
 
 ---
 
 ## 4. 本项目代码复现与应用
 
-针对最新的 CLIP 迭代款 —— **SigLIP**，本项目提供了以下两份代码实现：
+针对最新的 CLIP 迭代款 —— <strong>SigLIP</strong>，本项目提供了以下两份代码实现：
 
-1.  **核心架构从零实现**：[siglip_scratch.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/CLIP/siglip_scratch.py) 
+1.  <strong>核心架构从零实现</strong>：[siglip_scratch.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/CLIP/siglip_scratch.py) 
     *   实现了带有 `MultiheadAttentionPooling` 的 Vision Transformer。
     *   实现了 SigLIP 特有的 `SigmoidLoss` 损失函数（含可学习的 λ 与 β）。
-2.  **实战推断 Demo**：[run_demo.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/CLIP/run_demo.py)
+2.  <strong>实战推断 Demo</strong>：[run_demo.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/CLIP/run_demo.py)
     *   基于 Hugging Face `transformers` 库加载预训练的 `google/siglip-base-patch16-224` 模型。
-    *   完成了**零样本图像分类（Zero-shot Classification）**与**图文相关性检索（Image-Text Retrieval）**两个任务。
+    *   完成了 <strong>零样本图像分类（Zero-shot Classification）</strong> 与 <strong>图文相关性检索（Image-Text Retrieval）</strong> 两个任务。

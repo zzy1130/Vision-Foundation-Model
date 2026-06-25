@@ -19,23 +19,15 @@ OpenAI 于 2021 年提出 CLIP（Learning Transferable Visual Models From Natura
 ### 1.2 损失函数：对称 InfoNCE 损失
 CLIP 在一个大小为 **N** 的 Batch 内，计算所有 **N** 张图像与 **N** 个文本之间的相似度矩阵 **S** (其维度为 ℝ^(N×N))：
 
-$$
-s_{i,j} = \text{sim}(v_i, t_j) = \frac{v_i \cdot t_j}{\Vert v_i \Vert_2 \Vert t_j \Vert_2}
-$$
+<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20s_%7Bi%2Cj%7D%20%3D%20%5Ctext%7Bsim%7D%28v_i%2C%20t_j%29%20%3D%20%5Cfrac%7Bv_i%20%5Ccdot%20t_j%7D%7B%5CVert%20v_i%20%5CVert_2%20%5CVert%20t_j%20%5CVert_2%7D" alt="equation" /></p>
 
 损失函数对图像到文本、文本到图像分别计算交叉熵，并求均值：
 
-$$
-\mathcal{L}_{\text{InfoNCE}} = \frac{1}{2} \left( \mathcal{L}_{I \to T} + \mathcal{L}_{T \to I} \right)
-$$
+<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20%5Cmathcal%7BL%7D_%7B%5Ctext%7BInfoNCE%7D%7D%20%3D%20%5Cfrac%7B1%7D%7B2%7D%20%5Cleft%28%20%5Cmathcal%7BL%7D_%7BI%20%5Cto%20T%7D%20%2B%20%5Cmathcal%7BL%7D_%7BT%20%5Cto%20I%7D%20%5Cright%29" alt="equation" /></p>
 
-$$
-\mathcal{L}_{I \to T} = -\frac{1}{N} \sum_{i=1}^{N} \log \frac{\exp(s_{i,i} \cdot e^\tau)}{\sum_{j=1}^{N} \exp(s_{i,j} \cdot e^\tau)}
-$$
+<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20%5Cmathcal%7BL%7D_%7BI%20%5Cto%20T%7D%20%3D%20-%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi%3D1%7D%5E%7BN%7D%20%5Clog%20%5Cfrac%7B%5Cexp%28s_%7Bi%2Ci%7D%20%5Ccdot%20e%5E%5Ctau%29%7D%7B%5Csum_%7Bj%3D1%7D%5E%7BN%7D%20%5Cexp%28s_%7Bi%2Cj%7D%20%5Ccdot%20e%5E%5Ctau%29%7D" alt="equation" /></p>
 
-$$
-\mathcal{L}_{T \to I} = -\frac{1}{N} \sum_{j=1}^{N} \log \frac{\exp(s_{j,j} \cdot e^\tau)}{\sum_{i=1}^{N} \exp(s_{i,j} \cdot e^\tau)}
-$$
+<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20%5Cmathcal%7BL%7D_%7BT%20%5Cto%20I%7D%20%3D%20-%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bj%3D1%7D%5E%7BN%7D%20%5Clog%20%5Cfrac%7B%5Cexp%28s_%7Bj%2Cj%7D%20%5Ccdot%20e%5E%5Ctau%29%7D%7B%5Csum_%7Bi%3D1%7D%5E%7BN%7D%20%5Cexp%28s_%7Bi%2Cj%7D%20%5Ccdot%20e%5E%5Ctau%29%7D" alt="equation" /></p>
 
 
 ### 1.3 优缺点分析
@@ -110,9 +102,7 @@ SigLIP 丢弃了 Softmax，将对比学习转化为了 **N × N** 个**独立的
 
 损失函数采用二进制交叉熵（Binary Cross Entropy, BCE）：
 
-$$
-\mathcal{L}_{\text{SigLIP}} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{j=1}^{N} \log \sigma \left( y_{i,j} \left( \lambda \cdot s_{i,j} + \beta \right) \right)
-$$
+<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20%5Cmathcal%7BL%7D_%7B%5Ctext%7BSigLIP%7D%7D%20%3D%20-%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi%3D1%7D%5E%7BN%7D%20%5Csum_%7Bj%3D1%7D%5E%7BN%7D%20%5Clog%20%5Csigma%20%5Cleft%28%20y_%7Bi%2Cj%7D%20%5Cleft%28%20%5Clambda%20%5Ccdot%20s_%7Bi%2Cj%7D%20%2B%20%5Cbeta%20%5Cright%29%20%5Cright%29" alt="equation" /></p>
 
 其中：
 *   σ(z) = 1 / (1 + e<sup>-z</sup>) 是 Sigmoid 函数。

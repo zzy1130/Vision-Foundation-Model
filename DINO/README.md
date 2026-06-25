@@ -28,6 +28,9 @@ graph TD
 ## 2. Meta 自监督学习系列 (DINO v1 / v2 / v3)
 
 ### 2.1 DINO v1：自监督 ViT 自蒸馏机制 (2021)
+
+![DINO v1 Student-Teacher Illustration](images/dino_illustration.gif)
+
 DINO（Self-distillation with no labels）的核心思想是在 <strong>没有标签</strong> 的情况下，使用 <strong>教师-学生（Teacher-Student）</strong> 架构进行知识蒸馏。
 
 #### 2.1.1 核心机制与防崩塌策略
@@ -46,6 +49,11 @@ DINO v1 使用交叉熵损失，优化目标为最小化学生概率 P<sub>s</su
 ---
 
 ### 2.2 DINOv2：鲁棒的通用视觉表征 (2023)
+
+DINOv2 模型生成的高性能视觉特征可以直接配合简单的分类器或线性层应用在各种密集预测任务中，其语义提取效果非常优异。以下是其 patch 特征主成分分析（PCA）可视化的动画展示：
+
+![DINOv2 PCA Semantic Segmentation Video Demo](images/dinov2_demo.mp4)
+
 DINOv2 构建了高效率、大参数规模的通用视觉骨干网络，相比 v1 做了多项重要改进：
 1.  **iBOT 掩码图像建模（Masked Image Modeling, MIM）**：在图像 patch 级别上引入了自监督掩码损失。学生网络处理被随机遮蔽部分 patch 的图像，教师网络处理完整图像，在 patch 级别上对齐相似度，极大地增强了网络对于 <strong>语义分割、深度估计等密集预测（Dense Prediction）</strong> 任务的理解力。
 2.  **KoLeo 正则化（Kozachenko-Leonenko Entropic Regularizer）**：为了促使特征表征更均匀地分布在超球面上，防止特征过于聚拢或发生维度崩溃。
@@ -80,9 +88,29 @@ DINO-DETR 是由 IDEA 团队开发的一种基于 Transformer 架构的高性能
 ---
 
 ### 3.2 Grounding DINO：开集目标检测的范式结合 (2023)
+
+<p align="center">
+  <img src="images/grounding_dino_logo.png" width="30%" alt="Grounding DINO Logo" />
+</p>
+
 Grounding DINO 巧妙地将 <strong>DINO-DETR 的检测能力</strong> 与 <strong>文本接地定位（Text Grounding）</strong> 相结合，是零样本（Zero-Shot）开集物体检测的核心基石。
 
 #### 3.2.1 架构设计
+
+以下为 Grounding DINO 的模型架构图与开集检测示例图：
+
+<p align="center">
+  <img src="images/grounding_dino_architecture.png" width="80%" alt="Grounding DINO Architecture" />
+</p>
+
+<p align="center">
+  <img src="images/grounding_dino_hero.png" width="80%" alt="Grounding DINO Hero Figure" />
+</p>
+
+<p align="center">
+  <img src="images/grounding_dino_demo.jpg" width="60%" alt="Grounding DINO Demo" />
+</p>
+
 ```mermaid
 graph LR
     Img[图像输入] --> ImgBack[Swin 骨干]

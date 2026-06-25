@@ -20,7 +20,7 @@ OpenAI 于 2021 年提出 CLIP（Learning Transferable Visual Models From Natura
 CLIP 在一个大小为 $N$ 的 Batch 内，计算所有 $N$ 张图像与 $N$ 个文本之间的相似度矩阵 $S \in \mathbb{R}^{N \times N}$：
 
 $$
-s_{i,j} = \text{sim}(v_i, t_j) = \frac{v_i \cdot t_j}{\|v_i\|_2 \|t_j\|_2}
+s_{i,j} = \text{sim}(v_i, t_j) = \frac{v_i \cdot t_j}{\Vert v_i \Vert_2 \Vert t_j \Vert_2}
 $$
 
 损失函数对图像到文本、文本到图像分别计算交叉熵，并求均值：
@@ -105,8 +105,8 @@ SigLIP (Sigmoid Loss for Language-Image Pre-training) 是目前 CLIP 演进中**
 #### 2.5.2 Sigmoid 损失的数学原理
 SigLIP 丢弃了 Softmax，将对比学习转化为了 $N \times N$ 个**独立的二分类问题（Binary Classification Task）**。
 对于每一个图文对 $(i, j)$，模型预测它们是否匹配：
-*   当 $i = j$ 时，目标标签 $y_{i,j} = 1$（正样本）。
-*   当 $i \neq j$ 时，目标标签 $y_{i,j} = -1$（负样本）。
+*   当 $i = j$ 时，目标标签 $`y_{i,j} = 1`$（正样本）。
+*   当 $i \neq j$ 时，目标标签 $`y_{i,j} = -1`$（负样本）。
 
 损失函数采用二进制交叉熵（Binary Cross Entropy, BCE）：
 
@@ -118,7 +118,7 @@ $$
 *   $\sigma(z) = \frac{1}{1 + e^{-z}}$ 是 Sigmoid 函数。
 *   $\lambda$ 是可学习的缩放参数（对应于 CLIP 中的 $e^\tau$）。
 *   $\beta$ 是可学习的偏置参数（Bias）。
-*   $s_{i,j} = v_i \cdot t_j$ 是图像 $v_i$ 与文本 $t_j$ 的内积相似度。
+*   $`s_{i,j} = v_i \cdot t_j`$ 是图像 $`v_i`$ 与文本 $`t_j`$ 的内积相似度。
 
 #### 2.5.3 迭代亮点与突破
 1.  **无通信瓶颈**：由于每个图文对的计算是独立的，不需要全局 Softmax 归一化。这使得显卡之间不需要 All-Gather 所有的特征，仅需简单的多卡并行计算，通信复杂度从 $O(N^2)$ 降为 $O(N)$（按流式分块处理即可）。

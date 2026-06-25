@@ -249,3 +249,25 @@ outputs = model(images, input_ids)
 print("Query to Text alignment shape:", outputs["pred_logits"].shape) # [2, 25, 15]
 print("Box coordinate output shape:", outputs["pred_boxes"].shape)   # [2, 25, 4]
 ```
+
+---
+
+## 5. DINOv3 空间关系与格拉姆锚定可视化 Demo
+
+为了直观地展示 DINOv3 的 <strong>格拉姆锚定（Gram Anchoring）</strong> 如何捕获图像的密集空间表征和局部特征相关性，本项目在 [visualize_dino_v3.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/DINO/visualize_dino_v3.py) 中实现了一个交互式可视化 Demo。
+
+### 5.1 运行方式
+直接在终端中运行以下命令：
+```bash
+/Users/zhongzhiyi/Vision-Foundation-Model/.venv/bin/python DINO/visualize_dino_v3.py
+```
+
+### 5.2 运行效果与物理解释
+运行后，脚本将在 [dino_v3_similarity_demo.png](file:///Users/zhongzhiyi/Vision-Foundation-Model/DINO/demo_images/dino_v3_similarity_demo.png) 生成一张对比可视化图，主要包含以下内容：
+1.  **合成输入图像**：包含一个红色圆形和一个蓝色矩形，分别代表不同的空间目标。同时，在圆形内部（Query 1）、矩形内部（Query 2）和背景区域（Query 3）各设置了一个查询像素点（以 X 标记）。
+2.  **相似度热力图（Similarity Maps）**：对于每个查询点，基于 DINOv3 导出的 `16 × 16` 个 patch 特征，计算其与所有其他 patch 的 cosine 相似度（即 Gram 矩阵对应行），并重塑回二维热力图显示。
+    *   **圆形查询点热力图**：展示圆形区域内的 patch 与其他区域的关联度。在经过充分自监督训练的 DINO 骨干中，此处会显示出清晰的圆形轮廓，表明模型在无监督下自动学会了物体的边界分割（Emerging Segmenter Property）。
+    *   **矩形查询点热力图**：同样展示出矩形区域的高度关联。
+    *   **背景查询点热力图**：背景区域 patch 表现出高关联性，表明模型能区分前景物体与背景环境。
+3.  **格拉姆锚定作用**：DINOv3 在长周期预训练中，通过 L2 损失约束学生与 Gram 教师的格拉姆矩阵（相似度图谱）一致，强制让这些相似度热力图的空间布局保持稳定，不会因为模型参数的进一步缩放而发生局域信息退化或坍塌。
+

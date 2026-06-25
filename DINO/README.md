@@ -50,9 +50,17 @@ DINO v1 使用交叉熵损失，优化目标为最小化学生概率 P<sub>s</su
 
 ### 2.2 DINOv2：鲁棒的通用视觉表征 (2023)
 
-DINOv2 模型生成的高性能视觉特征可以直接配合简单的分类器或线性层应用在各种密集预测任务中，其语义提取效果非常优异。以下是其 patch 特征主成分分析（PCA）可视化的动画展示：
+DINOv2 模型能够学习到极其稳健且具有强泛化能力的视觉特征。以下为 DINOv2 的整体模型与任务架构图：
 
-![DINOv2 PCA Semantic Segmentation Video Demo](images/dinov2_demo.mp4)
+<p align="center">
+  <img src="images/dinov2_overview.jpg" width="80%" alt="DINOv2 Architecture Overview" />
+</p>
+
+DINOv2 模型生成的高性能视觉特征可以直接配合简单的分类器或线性层应用在各种密集预测任务中，其语义提取效果非常优异。以下是其 patch 特征主成分分析（PCA）可视化的视频展示（使用 HTML video 标签）：
+
+<p align="center">
+  <video src="images/dinov2_demo.mp4" width="80%" autoplay loop muted controls></video>
+</p>
 
 DINOv2 构建了高效率、大参数规模的通用视觉骨干网络，相比 v1 做了多项重要改进：
 1.  **iBOT 掩码图像建模（Masked Image Modeling, MIM）**：在图像 patch 级别上引入了自监督掩码损失。学生网络处理被随机遮蔽部分 patch 的图像，教师网络处理完整图像，在 patch 级别上对齐相似度，极大地增强了网络对于 <strong>语义分割、深度估计等密集预测（Dense Prediction）</strong> 任务的理解力。
@@ -65,25 +73,59 @@ DINOv2 构建了高效率、大参数规模的通用视觉骨干网络，相比 
 ---
 
 ### 2.3 DINOv3：抑制特征退化的格拉姆锚定 (2025.08)
+
 Meta FAIR 于 2025 年 8 月推出 DINOv3，旨在克服大规模模型长周期自监督训练时出现的 <strong>密集特征图退化（Dense Feature Degradation）</strong> 现象（即虽然分类性能提升，但局部 patch 表征的结构连贯性降低）。
 
-#### 2.3.1 格拉姆锚定（Gram Anchoring）
-DINOv3 引入了 **Gram Anchoring**，用以约束学生网络的空间结构，使其与一个缓慢更新或冻结的稳定“Gram 教师”保持一致。
+#### 2.3.1 特征退化与 PCA 可视化对比
+在缺乏空间几何约束的长周期训练下，自监督特征会在局部细节上产生噪点或破裂。下图展示了引入 DINOv3 格拉姆锚定前后，图像 patch 特征 PCA 可视化的清晰度对比：
+
+<p align="center">
+  <img src="images/dinov3_cat_pca_1.jpg" width="45%" alt="DINOv2 PCA feature map degradation" />
+  <img src="images/dinov3_cat_pca_2.jpg" width="45%" alt="DINOv3 PCA feature map with Gram Anchoring" />
+</p>
+<p align="center">
+  <em>图：左侧为普通长周期自监督训练下的特征图退化现象；右侧为 DINOv3 借助格拉姆锚定维持的稳定局部语义特征结构。</em>
+</p>
+
+#### 2.3.2 格拉姆锚定（Gram Anchoring）
+DINOv3 引入了 <strong>Gram Anchoring</strong>，用以约束学生网络的空间结构，使其与一个缓慢更新或冻结的稳定“Gram 教师”保持一致。
 *   对于包含 P 个 patch、特征维度为 d 的特征图 X (ℝ^(P × d))，通过 L2 归一化通道维度，计算其格拉姆矩阵（Gram Matrix）以代表 patch 之间的相似度图谱：
     <p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20G%20%3D%20X%20X%5ET" alt="equation" /></p>
     其中 G (ℝ^(P × P))。
 *   通过最小化学生与 Gram 教师之间的均方误差，保证空间结构的几何一致性，从而允许模型在 7B 参数、17亿张图片上长周期训练而依然维持顶级的局域定位精度：
     <p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20%5Cmathcal%7BL%7D_%7BGram%7D%20%3D%20%5CVert%20G_%7B%5Ctext%7Bstudent%7D%7D%20-%20G_%7B%5Ctext%7Bteacher%7D%7D%20%5CVert_F%5E2" alt="equation" /></p>
 
+#### 2.3.3 密集预测下游应用（如卫星遥感森林冠高估计）
+DINOv3 卓越的空间结构特征使其非常适用于地理信息学等下游密集预测任务。下图对比了 DINOv2 与 DINOv3 在卫星遥感图像上预测森林冠层高度（Canopy Height Estimation）的实际表现：
+
+<p align="center">
+  <img src="images/dinov3_satellite_dinov2.png" width="45%" alt="Canopy Height Estimation by DINOv2" />
+  <img src="images/dinov3_satellite_dinov3.png" width="45%" alt="Canopy Height Estimation by DINOv3" />
+</p>
+<p align="center">
+  <em>图：使用 DINOv3 预测出的林冠高度图谱空间连续性更强，显著克服了 DINOv2 在局部特征上的高频噪点问题。</em>
+</p>
+
 ---
 
 ## 3. 目标检测与开集接地定位系列 (DINO-DETR / Grounding DINO)
 
 ### 3.1 DINO-DETR：高效收敛的 Transformer 检测器 (2023)
-DINO-DETR 是由 IDEA 团队开发的一种基于 Transformer 架构的高性能目标检测模型。它克服了 DETR 收敛缓慢的问题，三大创新点如下：
-*   **混合查询选择（Mixed Query Selection）**：之前的方法要么使用静态可学习查询，要么采用 Deformable DETR 的双重查询。DINO-DETR 选择将 Encoder 输出特征中的 Top-K 强特征用作初始锚框（即 positional queries，带有极强的图像自适应空间先验），而 content queries 保持为零或可学习偏移参数，实现了“混合选择”。
-*   **对比去噪训练（Contrastive Denoising Training, CDN）**：在传统的去噪训练（DN-DETR）中只添加了正向噪点框。DINO 引入了“对比”概念，设置正负两类噪点。低噪声框被贴上正样本标签，要求重建；高噪声框被赋予负样本标签（背景），使模型学会对相似但带有偏差的定位进行抑制，从而避免检测框的重叠。
-*   **向前看两次（Look Forward Twice）**：在 DETR 的多层解码中，通常在前向传播计算坐标更新后，会将坐标的梯度回传阻断（detach）。DINO 通过改进此公式，使第 i-1 层的参数能从第 i 层的最终坐标预测损失中直接回传梯度，通过多层深度监督大大加速了框的精细化微调。
+
+<p align="center">
+  <img src="images/dino_detr_logo.png" width="18%" alt="DINO-DETR Dinosaur Logo" />
+</p>
+
+DINO-DETR 是由 IDEA 团队开发的一种基于 Transformer 架构的高性能目标检测模型。它克服了 DETR 收敛缓慢的问题，整体网络架构与训练流程如下图所示：
+
+<p align="center">
+  <img src="images/dino_detr_framework.png" width="85%" alt="DINO-DETR Framework Pipeline" />
+</p>
+
+其三大核心创新点与运行机制如下：
+*   <strong>混合查询选择（Mixed Query Selection）</strong>：之前的方法要么使用静态可学习查询，要么采用 Deformable DETR 的双重查询。DINO-DETR 选择将 Encoder 输出特征中的 Top-K 强特征用作初始锚框（即 positional queries，带有极强的图像自适应空间先验），而 content queries 保持为零或可学习偏移参数，实现了“混合选择”。
+*   <strong>对比去噪训练（Contrastive Denoising Training, CDN）</strong>：在传统的去噪训练（DN-DETR）中只添加了正向噪点框。DINO 引入了“对比”概念，设置正负两类噪点。低噪声框被贴上正样本标签，要求重建；高噪声框被赋予负样本标签（背景），使模型学会对相似但带有偏差的定位进行抑制，从而避免检测框的重叠。
+*   <strong>向前看两次（Look Forward Twice）</strong>：在 DETR 的多层解码中，通常在前向传播计算坐标更新后，会将坐标的梯度回传阻断（detach）。DINO 通过改进此公式，使第 i-1 层的参数能从第 i 层的最终坐标预测损失中直接回传梯度，通过多层深度监督大大加速了框的精细化微调。
 
 ---
 
@@ -291,11 +333,17 @@ print("Box coordinate output shape:", outputs["pred_boxes"].shape)   # [2, 25, 4
 ```
 
 ### 5.2 运行效果与物理解释
-运行后，脚本将在 [dino_v3_similarity_demo.png](file:///Users/zhongzhiyi/Vision-Foundation-Model/DINO/demo_images/dino_v3_similarity_demo.png) 生成一张对比可视化图，主要包含以下内容：
-1.  **合成输入图像**：包含一个红色圆形和一个蓝色矩形，分别代表不同的空间目标。同时，在圆形内部（Query 1）、矩形内部（Query 2）和背景区域（Query 3）各设置了一个查询像素点（以 X 标记）。
+运行后，脚本将生成一张对比可视化图，并保存在 [dino_v3_similarity_demo.png](file:///Users/zhongzhiyi/Vision-Foundation-Model/DINO/demo_images/dino_v3_similarity_demo.png) 中，如下图所示：
+
+<p align="center">
+  <img src="demo_images/dino_v3_similarity_demo.png" width="85%" alt="DINOv3 Gram Anchoring Similarity Hotmap Demo" />
+</p>
+
+该图展示了以下核心物理解释：
+1.  **合成输入图像**：包含一个红色圆形和一个蓝色矩形，分别代表不同的空间目标。同时，在圆形内部（Query 1）、矩形内部（Query 2）和背景区域（Query 3）各设置了一个查询像素点（以红色、蓝色、绿色的 "X" 标记）。
 2.  **相似度热力图（Similarity Maps）**：对于每个查询点，基于 DINOv3 导出的 `16 × 16` 个 patch 特征，计算其与所有其他 patch 的 cosine 相似度（即 Gram 矩阵对应行），并重塑回二维热力图显示。
     *   **圆形查询点热力图**：展示圆形区域内的 patch 与其他区域的关联度。在经过充分自监督训练的 DINO 骨干中，此处会显示出清晰的圆形轮廓，表明模型在无监督下自动学会了物体的边界分割（Emerging Segmenter Property）。
-    *   **矩形查询点热力图**：同样展示出矩形区域的高度关联。
+    *   **矩形查询点热力图**：同样展示出矩形区域高度关联。
     *   **背景查询点热力图**：背景区域 patch 表现出高关联性，表明模型能区分前景物体与背景环境。
-3.  **格拉姆锚定作用**：DINOv3 在长周期预训练中，通过 L2 损失约束学生与 Gram 教师的格拉姆矩阵（相似度图谱）一致，强制让这些相似度热力图的空间布局保持稳定，不会因为模型参数的进一步缩放而发生局域信息退化或坍塌。
+3.  **格拉姆锚定作用**：DINOv3 在长周期预训练中，通过 L2 损失约束学生与 Gram 教师的格拉姆矩阵（相似度图谱）一致，强制让这些相似度热力图的空间布局保持稳定，不会因为模型参数的进一步缩放而发生局域信息退化或表征坍塌。
 

@@ -13,11 +13,11 @@ OpenAI 于 2021 年提出 CLIP（Learning Transferable Visual Models From Natura
 ### 1.1 核心架构
 *   **图像编码器 (Image Encoder)**：可以是 ResNet-50 / ResNet-101，也可以是 Vision Transformer (ViT-B/32, ViT-B/16, ViT-L/14)。
 *   **文本编码器 (Text Encoder)**：一个标准的 Transformer 编码器。
-*   **投影矩阵 (Projection Layer)**：将图像编码器和文本编码器提取的特征分别映射到相同的 $D$ 维多模态共享嵌入空间，然后进行 **L2 归一化 (L2 Normalization)**。
-*   **可学习温度参数 (Learnable Temperature, $\tau$)**：控制预测概率的缩放，通常初始化为 $\ln(1/0.07) \approx 2.659$，并设上限为 100（防止训练不稳定）。
+*   **投影矩阵 (Projection Layer)**：将图像编码器和文本编码器提取的特征分别映射到相同的 **D** 维多模态共享嵌入空间，然后进行 **L2 归一化 (L2 Normalization)**。
+*   **可学习温度参数 (Learnable Temperature, τ)**：控制预测概率的缩放，通常初始化为 ln(1/0.07) ≈ 2.659，并设上限为 100（防止训练不稳定）。
 
 ### 1.2 损失函数：对称 InfoNCE 损失
-CLIP 在一个大小为 $N$ 的 Batch 内，计算所有 $N$ 张图像与 $N$ 个文本之间的相似度矩阵 $S \in \mathbb{R}^{N \times N}$：
+CLIP 在一个大小为 **N** 的 Batch 内，计算所有 **N** 张图像与 **N** 个文本之间的相似度矩阵 **S** (其维度为 ℝ^(N×N))：
 
 $$
 s_{i,j} = \text{sim}(v_i, t_j) = \frac{v_i \cdot t_j}{\Vert v_i \Vert_2 \Vert t_j \Vert_2}
@@ -42,7 +42,7 @@ $$
 *   **优点**：极强的 Zero-shot 迁移能力；强大的鲁棒性，克服了 ImageNet 分类器易受分布偏移影响的问题。
 *   **缺点**：
     *   **计算资源极其昂贵**：需要极大的 Batch Size（OpenAI 使用了 32,768）以保证对比学习中负样本的多样性。
-    *   **Softmax 全局归一化瓶颈**：在多卡分布式训练中，为了计算 Softmax 分母，需要进行 All-Gather 节点通信，内存占用为 $O(N^2)$，极大限制了 Batch Size 的进一步扩大。
+    *   **Softmax 全局归一化瓶颈**：在多卡分布式训练中，为了计算 Softmax 分母，需要进行 All-Gather 节点通信，内存占用为 O(N²)，极大限制了 Batch Size 的进一步扩大。
 
 ---
 
@@ -103,10 +103,10 @@ SigLIP (Sigmoid Loss for Language-Image Pre-training) 是目前 CLIP 演进中**
 2.  **不适用于小 Batch**：如果 Batch Size 较小，Softmax 容易过拟合到 Batch 内的干扰样本。
 
 #### 2.5.2 Sigmoid 损失的数学原理
-SigLIP 丢弃了 Softmax，将对比学习转化为了 $N \times N$ 个**独立的二分类问题（Binary Classification Task）**。
-对于每一个图文对 $(i, j)$，模型预测它们是否匹配：
-*   当 $i = j$ 时，目标标签 $`y_{i,j} = 1`$（正样本）。
-*   当 $i \neq j$ 时，目标标签 $`y_{i,j} = -1`$（负样本）。
+SigLIP 丢弃了 Softmax，将对比学习转化为了 **N × N** 个**独立的二分类问题（Binary Classification Task）**。
+对于每一个图文对 (i, j)，模型预测它们是否匹配：
+*   当 i = j 时，目标标签 y<sub>i,j</sub> = 1（正样本）。
+*   当 i ≠ j 时，目标标签 y<sub>i,j</sub> = -1（负样本）。
 
 损失函数采用二进制交叉熵（Binary Cross Entropy, BCE）：
 
@@ -115,13 +115,13 @@ $$
 $$
 
 其中：
-*   $\sigma(z) = \frac{1}{1 + e^{-z}}$ 是 Sigmoid 函数。
-*   $\lambda$ 是可学习的缩放参数（对应于 CLIP 中的 $e^\tau$）。
-*   $\beta$ 是可学习的偏置参数（Bias）。
-*   $`s_{i,j} = v_i \cdot t_j`$ 是图像 $`v_i`$ 与文本 $`t_j`$ 的内积相似度。
+*   σ(z) = 1 / (1 + e<sup>-z</sup>) 是 Sigmoid 函数。
+*   λ 是可学习的缩放参数（对应于 CLIP 中的 e<sup>τ</sup>）。
+*   β 是可学习的偏置参数（Bias）。
+*   s<sub>i,j</sub> = v<sub>i</sub> · t<sub>j</sub> 是图像 v<sub>i</sub> 与文本 t<sub>j</sub> 的内积相似度。
 
 #### 2.5.3 迭代亮点与突破
-1.  **无通信瓶颈**：由于每个图文对的计算是独立的，不需要全局 Softmax 归一化。这使得显卡之间不需要 All-Gather 所有的特征，仅需简单的多卡并行计算，通信复杂度从 $O(N^2)$ 降为 $O(N)$（按流式分块处理即可）。
+1.  **无通信瓶颈**：由于每个图文对的计算是独立的，不需要全局 Softmax 归一化。这使得显卡之间不需要 All-Gather 所有的特征，仅需简单的多卡并行计算，通信复杂度从 O(N<sup>2</sup>) 降为 O(N)（按流式分块处理即可）。
 2.  **支持超大规模 Batch Size**：可扩展至数十万甚至数百万的 Batch Size，不受显卡显存和节点通信的制约。
 3.  **在小 Batch 下更稳定**：相比 Softmax 在小 Batch 下的脆弱性，SigLIP 的二分类属性在较小 batch size 下也有极佳的表现。
 4.  **架构简单**：是当前 Google PaliGemma 等最新 VLM 的核心视觉-语言对齐骨干。
@@ -137,7 +137,7 @@ $$
 | **FLIP (Meta)** | 2022 | 图像掩码 (Masking) | 训练计算成本高、图像特征冗余 | 极适合预算有限但数据量巨大的大规模预训练。 |
 | **CLIPA** | 2023 | 动态分辨率与 Packing | 预训练成本太高 | 用极低分辨率起手，适合学术界快速迭代和验证。 |
 | **EVA-CLIP** | 2023 | 视觉自监督预训练权重 | 超大模型预训练的不稳定性 | 表征性能天花板，适用于对 Zero-shot 性能有极致要求的场景。 |
-| **SigLIP (Google)**| 2023 | **Sigmoid Loss 替代 Softmax** | 分布式多卡通信瓶颈及显存 $O(N^2)$ 爆炸 | 当前最前沿、效率最高的对齐方案，是现代端侧 VLM 的首选。 |
+| **SigLIP (Google)**| 2023 | **Sigmoid Loss 替代 Softmax** | 分布式多卡通信瓶颈及显存 O(N²) 爆炸 | 当前最前沿、效率最高的对齐方案，是现代端侧 VLM 的首选。 |
 
 ---
 
@@ -147,7 +147,7 @@ $$
 
 1.  **核心架构从零实现**：[siglip_scratch.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/CLIP/siglip_scratch.py) 
     *   实现了带有 `MultiheadAttentionPooling` 的 Vision Transformer。
-    *   实现了 SigLIP 特有的 `SigmoidLoss` 损失函数（含可学习的 $\lambda$ 与 $\beta$）。
+    *   实现了 SigLIP 特有的 `SigmoidLoss` 损失函数（含可学习的 λ 与 β）。
 2.  **实战推断 Demo**：[run_demo.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/CLIP/run_demo.py)
     *   基于 Hugging Face `transformers` 库加载预训练的 `google/siglip-base-patch16-224` 模型。
     *   完成了**零样本图像分类（Zero-shot Classification）**与**图文相关性检索（Image-Text Retrieval）**两个任务。

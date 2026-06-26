@@ -24,3 +24,10 @@ To ensure all mathematical formulas render perfectly on GitHub web and mobile, a
 *   `.venv/`, `__pycache__/`, and temporary image folders like `CLIP/demo_images/` must be ignored in `.gitignore`.
 *   **Do NOT ignore `CLIP/images/`**. This folder contains documentation assets (diagrams) and must be tracked by Git.
 *   For each implemented VFM variant, provide clean PyTorch class models in the directory (e.g. `siglip.py`, `flip.py`) and write detailed invocation snippets in the README.
+
+## 4. SAM Family Implementation & Spatial Alignment Rules
+*   **Dynamic Resolution & Spatial Dimensions**: The outputs of prompt mask downsamplers must dynamically align with the image features' spatial shape (e.g. `img_feats.shape[-2:]`). Avoid hardcoding target resolutions (e.g., `64x64`) inside the model; instead, dynamically pass the target feature map shape to prevent tensor shape mismatch errors during inference with arbitrary image inputs.
+*   **Resolution-Agnostic Normalization (GroupNorm)**: Avoid normalization operators that require a fixed resolution such as `nn.LayerNorm([channels, H, W])` in modules processing feature maps of dynamic sizes. Use **`nn.GroupNorm(1, channels)`** or standard 2D batch normalization to ensure resolution-independent forward propagation.
+*   **State Reset & Sequence Separation**: Always provide a public state reset interface (e.g., `reset_video_memory()`) for tracking-based architectures like SAM 2. The memory FIFO queues and historical lookup channels must be cleared between video sequences to prevent dimensions mismatch or cross-video prediction corruption.
+*   **Geometric Inversion in 3D Backprojection**: When lifting 2D masks to 3D world space (e.g. SAM 3D), ensure intrinsics and extrinsics are inverted mathematically via `torch.inverse(intrinsics)` and translation shifting. Apply a small positive epsilon offset to depth values to prevent divide-by-zero or numeric instability at zero-depth regions.
+

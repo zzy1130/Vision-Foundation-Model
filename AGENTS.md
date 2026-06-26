@@ -53,3 +53,12 @@
 3.  **代码复现要求**：
     *   各阶段模型（如第一阶段的 OpenAI CLIP, FLIP, CLIPA, EVA-CLIP, SigLIP）需在对应目录下提供纯 PyTorch 从零实现的模型代码文件（无需下载 pre-trained checkpoint，只需实现 forward 和 loss 计算以供学习模型架构）。
     *   必须在各目录的 README 中详细给出各个模型前向传播的正确调用代码框。
+
+---
+
+## 4. SAM 家族模型开发与空间维度对齐规范
+
+1.  <strong>动态分辨率与特征图尺度对齐</strong>：提示编码器中对 Mask 进行下采样时，其输出分辨率必须与图像编码器提取的特征图维度完全一致（如 `img_feats.shape[-2:]`）。在 PyTorch 模型的前向传播中，避免硬编码空间尺寸（如 `64x64`），应动态传入 `feat_shape = (H_feat, W_feat)` 以确保模型能适应不同输入图像分辨率。
+2.  <strong>分辨率无关的归一化算子 (GroupNorm)</strong>：在对特征进行下采样的模块（例如提示编码器中的 mask_downsampler）中，若特征的空间维度动态变化，严禁使用依赖固定空间维度的归一化算子，如 `nn.LayerNorm([channels, H, W])`。一律使用 <strong>`nn.GroupNorm(1, channels)`</strong> 或 `nn.BatchNorm2d` 替代，以确保前向传播在不同分辨率下均能正常计算。
+3.  <strong>时序追踪状态与记忆单元重置</strong>：视频级别或时序跟踪模型（如 SAM 2）必须实现显式的记忆状态重置接口（例如 `reset_video_memory()`），并在处理不同视频流之前调用。在评估（eval）模式下，FIFO 记忆队列的长度控制和历史状态读取必须保持严格的维度一致性，防止发生跨序列内存污染或维度溢出。
+4.  <strong>三维反投影 (Lifting) 中的几何变换</strong>：将 2D 像素坐标提升到三维空间（如 SAM 3D）时，必须通过外参 <strong>[R | T]</strong> 和内参 K 的精确逆矩阵（`torch.inverse(intrinsics)`）进行反投影，且深度图的取值必须严格为正数（可加极小偏置，如 `+ 1e-5`），以避免在 homogeneous 坐标系转换中出现奇异点或零分母。

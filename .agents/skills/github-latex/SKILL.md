@@ -47,3 +47,51 @@ latex = r"\bg_white \mathcal{L}_{\text{ssi}} = \frac{1}{N} \sum_{i} \left( \hat{
 encoded = urllib.parse.quote(latex)
 print(f"https://latex.codecogs.com/svg.latex?{encoded}")
 ```
+
+---
+
+## 3. Alternative & Robust Principle: Local Image Rendering
+
+Due to third-party services like CodeCogs being unstable or frequently blocked, complex or new formulas should be rendered locally to high-resolution PNG images and stored in the subfolder's `images/` directory.
+
+### 3.1 Local Rendering Python Script Template
+Use the following Python snippet to render mathematical equations to PNGs using `matplotlib.mathtext` (which requires no external LaTeX installation):
+
+```python
+import os
+import matplotlib.pyplot as plt
+
+# Configure matplotlib for Computer Modern (LaTeX-style) math fonts
+plt.rcParams.update({
+    "text.usetex": False,
+    "mathtext.fontset": "cm",
+})
+
+def render_latex(formula, save_path):
+    # Set size and DPI
+    fig = plt.figure(figsize=(8, 1.2), dpi=300)
+    fig.patch.set_facecolor('white')  # Explicit white background for dark mode theme compatibility
+    
+    plt.text(0.5, 0.5, formula,
+             horizontalalignment='center',
+             verticalalignment='center',
+             fontsize=14,
+             color='black')
+    
+    plt.gca().axis('off')
+    
+    # Save with tight bounding box to crop margins
+    plt.savefig(save_path, 
+                bbox_inches='tight', 
+                pad_inches=0.1, 
+                facecolor=fig.get_facecolor(), 
+                edgecolor='none')
+    plt.close(fig)
+```
+
+### 3.2 HTML Insertion
+Refer to the local image relative to the subfolder's root, specifying a standard width to ensure it scales nicely:
+```html
+<p align="center"><img src="images/eq1_ssi.png" width="55%" alt="SSI Loss" /></p>
+```
+

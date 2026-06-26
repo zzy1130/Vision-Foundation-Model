@@ -5,9 +5,10 @@ This project is a dedicated repository for studying Vision Foundation Models (VF
 When editing code, writing READMEs, or creating documentation in this repository, you must adhere to the following workspace rules:
 
 ## 1. Documentation & LaTeX Math Rendering Rules
-To ensure all mathematical formulas render perfectly on GitHub web and mobile, and remain readable in both light/dark mode themes:
-*   **Block Math (`$$ ... $$`)**: Convert all block equations to centered SVG images hosted on CodeCogs. Prepend `\bg_white` (URL encoded as `%5Cbg_white%20`) to the LaTeX code to add a white background for dark mode theme compatibility.
-    *   *Format*: `<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20URL_ENCODED_LATEX" alt="equation" /></p>`
+To ensure all mathematical formulas render perfectly on GitHub web and mobile, and do not rely on unstable external rendering servers:
+*   **Math Rendering (Follow the `github-latex` Skill)**: All math rendering must strictly follow the rules defined in our workspace `github-latex` skill.
+*   **Block Math (`$$ ... $$`)**: Standard double dollar signs `$$` must be used for standalone centered math blocks, where both the opening/closing `$$` and the LaTeX content reside on separate lines. HTML `<img>` tags pointing to CodeCogs are deprecated and prohibited.
+*   **LaTeX Formatting Rules**:
     *   *Do NOT* use double pipe `\|` (for norms) in LaTeX. Use `\Vert` instead to avoid markdown table/pipe parser conflicts.
 *   **Inline Math**:
     *   For simple subscripts, variables, and Greek letters, use Unicode symbols and HTML `<sub>` tags to ensure instant rendering across all platforms without depending on MathJax/KaTeX.

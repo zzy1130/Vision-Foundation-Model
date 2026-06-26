@@ -8,17 +8,15 @@
 
 ## 1. 文档数学公式排版规范 (GitHub LaTeX/MathJax)
 
-为了确保 README 文档在 GitHub 网页端（特别是中国大陆网络环境、开启了广告屏蔽插件或移动端浏览器上）能够 100% 成功加载且完美显示公式，须遵循以下规范：
+为了确保 README 文档中的数学公式在 GitHub 网页和移动端能够完美渲染，并且不依赖不稳定的第三方服务（如 CodeCogs 经常返回 503 错误），我们一律采用 GitHub 官方原生支持的 MathJax 渲染方式。
 
-### 1.1 公式块（Block Math）规范
-*   **痛点**：GitHub 官方的 MathJax 渲染器脚本（加载自第三方 CDN 或 GitHub 资产域名）在中国大陆经常因 DNS 污染或 CDN 节流而无法加载；此外，uBlock Origin 等广告屏蔽插件也经常拦截 MathJax。这会导致标准的 `$$ ... $$` 无法渲染，直接显示为源码。
-*   **解决方案**：一律将独立的公式块替换为 **CodeCogs 渲染的高清 SVG 矢量图片**。
-*   **编写格式**：
-    使用 HTML `<p align="center">` 标签包裹 `<img>`，并必须在 LaTeX 源码开头添加 `\bg_white`（URL 编码为 `%5Cbg_white%20`），以确保在 GitHub 的 **黑夜/暗色模式主题** 下，公式依然带有白色底板、清晰可读。
-    *   **示例代码**：
-        ```html
-        <p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20%5Cmathcal%7BL%7D_%7B%5Ctext%7BSigLIP%7D%7D%20%3D%20-%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi%3D1%7D%5E%7BN%7D%20%5Csum_%7Bi%3D1%7D%5E%7BN%7D%20..." alt="equation" /></p>
-        ```
+### 1.1 公式排版规范（必须遵循 `github-latex` Skill）
+本项目创建了定制化的 `github-latex` Skill，所有公式的编写规范与渲染方式必须严格遵循此 Skill 的规则：
+*   **公式块（Block Math）**：必须使用标准的双美元符号 `$$ ... $$` 包裹，且公式与 `$$` 各自独占一行。禁止使用 CodeCogs 链接的 `<img>` 标签或 HTML 居中标签。
+    *   **示例**：
+        $$
+        \mathcal{L}_{\text{ssi}} = \frac{1}{N} \sum_{i} \left( \hat{d}_i^{\text{pred}} - \hat{d}_i^{\text{GT}} \right)^2
+        $$
 *   **LaTeX 编写禁忌**：
     *   **不要在公式中使用双竖线 `\|`**（表示范数）：Markdown 解析器会将 `\|` 误识别为表格的管道转义符，剥离斜杠从而破坏 LaTeX 语法。必须使用标准 LaTeX 命令 **`\Vert`** 代替。
 

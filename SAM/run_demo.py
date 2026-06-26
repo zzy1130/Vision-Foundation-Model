@@ -136,12 +136,73 @@ def test_grounded_sam():
         else:
             print(f"Image {idx}: No items detected matching the text prompt.")
 
+def test_sam_v3():
+    print("\n--- Testing SAM 3 (Segment Anything with Concepts) ---")
+    from sam_v3 import SAM3, SAM3Loss
+    model = SAM3(in_channels=3, embed_dim=256)
+    model.eval()
+    
+    images = torch.randn(1, 3, 256, 256)
+    # Natural language concept prompt: "yellow school bus" -> encoded tokens
+    text_input_ids = torch.randint(0, 30522, (1, 5))
+    # Visual exemplar crop prompt: [1, 3, 64, 64]
+    exemplar_crops = torch.randn(1, 3, 64, 64)
+    
+    # Forward Pass with Concept prompts
+    masks, scores, presence_logits = model(
+        images, text_input_ids=text_input_ids, exemplar_crops=exemplar_crops
+    )
+    print("SAM 3 Concept masks shape:", masks.shape)            # Expect [1, 3, 64, 64]
+    print("SAM 3 Presence logits:", presence_logits)            # Expect [1, 1]
+    
+    # Verify SAM 3 Loss (segmentation + presence classification)
+    loss_fn = SAM3Loss()
+    target_masks = torch.randint(0, 2, (1, 3, 64, 64)).float()
+    target_presence = torch.tensor([[1]])
+    
+    total_loss, seg_loss, presence_loss = loss_fn(
+        masks, target_masks, presence_logits, target_presence
+    )
+    print(f"SAM 3 Loss verification: Total={total_loss.item():.4f} (Seg={seg_loss.item():.4f}, Presence={presence_loss.item():.4f})")
+
+def test_sam_3d():
+    print("\n--- Testing SAM 3D (Lifting & Mesh Generation) ---")
+    from sam_3d import SAM3D
+    model = SAM3D(embed_dim=256, num_vertices=100, num_faces=200)
+    model.eval()
+    
+    # 2D features map
+    img_feats = torch.randn(1, 256, 16, 16)
+    
+    # Camera matrix parameters for 3D Lifting
+    mask_logits = torch.randn(1, 1, 32, 32)
+    depth_map = torch.randn(1, 1, 32, 32).abs() + 0.1  # depth must be positive
+    intrinsics = torch.eye(3).unsqueeze(0)             # identity matrix [1, 3, 3]
+    extrinsics = torch.cat([torch.eye(3), torch.zeros(3, 1)], dim=1).unsqueeze(0) # [1, 3, 4]
+    
+    # Forward Pass
+    outputs = model(
+        img_feats,
+        mask_logits=mask_logits,
+        depth_map=depth_map,
+        intrinsics=intrinsics,
+        extrinsics=extrinsics
+    )
+    
+    print("Generative 3D Mesh vertices shape:", outputs["vertices"].shape)  # [1, 100, 3]
+    print("Generative 3D Mesh faces shape:", outputs["faces"].shape)        # [200, 3]
+    print("Predicted 3D bounding box layout shape:", outputs["layout"].shape) # [1, 9]
+    print("Lifted 3D Point Cloud coordinates shape:", outputs["point_cloud"].shape) # [1, 1024, 3]
+    print("Lifted 3D Mask segmentation scores shape:", outputs["mask_scores_3d"].shape) # [1, 1024, 1]
+
 def main():
     test_sam_v1()
     test_sam_v2()
     test_hq_sam()
     test_mobile_sam()
     test_grounded_sam()
+    test_sam_v3()
+    test_sam_3d()
 
 if __name__ == "__main__":
     main()

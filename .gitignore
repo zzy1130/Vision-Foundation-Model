@@ -13,6 +13,8 @@ __pycache__/
 
 # Local data & temporary downloaded images
 CLIP/demo_images/
+DINO/demo_images/
+Depth-Anything/demo_images/
 .DS_Store
 
 # IDE configuration

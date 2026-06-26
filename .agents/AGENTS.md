@@ -5,10 +5,10 @@ This project is a dedicated repository for studying Vision Foundation Models (VF
 When editing code, writing READMEs, or creating documentation in this repository, you must adhere to the following workspace rules:
 
 ## 1. Documentation & LaTeX Math Rendering Rules
-To ensure all mathematical formulas render perfectly on GitHub web and mobile, and do not rely on unstable external rendering servers:
-*   **Math Rendering (Follow the `github-latex` Skill)**: All math rendering must strictly follow the rules defined in our workspace `github-latex` skill.
-*   **Block Math (`$$ ... $$`)**: Standard double dollar signs `$$` must be used for standalone centered math blocks, where both the opening/closing `$$` and the LaTeX content reside on separate lines. HTML `<img>` tags pointing to CodeCogs are deprecated and prohibited.
-*   **LaTeX Formatting Rules**:
+To ensure all mathematical formulas render perfectly on GitHub web and mobile, and remain readable in both light/dark mode themes:
+*   **Block Math (`$$ ... $$`) (Follow the `github-latex` Skill)**: Convert all block equations to centered SVG images hosted on CodeCogs. All math rendering must strictly follow the rules defined in our workspace `github-latex` skill.
+    *   *Format*: `<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20URL_ENCODED_LATEX" alt="equation" /></p>`
+    *   *Note*: The LaTeX string must be fully URL-encoded (specifically, encode `(`, `)` as `%28`, `%29`, `{`, `}` as `%7B`, `%7D`, etc.).
     *   *Do NOT* use double pipe `\|` (for norms) in LaTeX. Use `\Vert` instead to avoid markdown table/pipe parser conflicts.
 *   **Inline Math**:
     *   For simple subscripts, variables, and Greek letters, use Unicode symbols and HTML `<sub>` tags to ensure instant rendering across all platforms without depending on MathJax/KaTeX.

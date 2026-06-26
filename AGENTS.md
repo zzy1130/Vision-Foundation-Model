@@ -8,15 +8,17 @@
 
 ## 1. 文档数学公式排版规范 (GitHub LaTeX/MathJax)
 
-为了确保 README 文档中的数学公式在 GitHub 网页和移动端能够完美渲染，并且不依赖不稳定的第三方服务（如 CodeCogs 经常返回 503 错误），我们一律采用 GitHub 官方原生支持的 MathJax 渲染方式。
+为了确保 README 文档在 GitHub 网页端（特别是中国大陆网络环境、开启了广告屏蔽插件或移动端浏览器上）能够 100% 成功加载且完美显示公式，须遵循以下规范：
 
-### 1.1 公式排版规范（必须遵循 `github-latex` Skill）
-本项目创建了定制化的 `github-latex` Skill，所有公式的编写规范与渲染方式必须严格遵循此 Skill 的规则：
-*   **公式块（Block Math）**：必须使用标准的双美元符号 `$$ ... $$` 包裹，且公式与 `$$` 各自独占一行。禁止使用 CodeCogs 链接的 `<img>` 标签或 HTML 居中标签。
-    *   **示例**：
-        $$
-        \mathcal{L}_{\text{ssi}} = \frac{1}{N} \sum_{i} \left( \hat{d}_i^{\text{pred}} - \hat{d}_i^{\text{GT}} \right)^2
-        $$
+### 1.1 公式块（Block Math）规范（必须遵循 `github-latex` Skill）
+*   **解决方案**：一律将独立的公式块替换为 **CodeCogs 渲染的高清 SVG 矢量图片**，并使用 HTML `<p align="center">` 标签包裹 `<img>`。
+*   **排版规范与工具**：项目创建了定制化的 `github-latex` Skill，所有公式的编写规范与渲染方式必须严格遵循此 Skill 的规则。
+*   **编写格式**：
+    在 LaTeX 源码开头添加 `\bg_white`，并将公式内容**完全 URL 编码**（尤其是括号 `(` 编码为 `%28`，`)` 编码为 `%29`，否则 GitHub 的渲染机制会解析失败返回 503）。
+    *   **示例代码**：
+        ```html
+        <p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20%5Cmathcal%7BL%7D_%7B%5Ctext%7BSigLIP%7D%7D%20%3D%20-%5Cfrac%7B1%7D%7BN%7D%20%5Csum_%7Bi%3D1%7D%5E%7BN%7D%20%5Csum_%7Bi%3D1%7D%5E%7BN%7D%20..." alt="equation" /></p>
+        ```
 *   **LaTeX 编写禁忌**：
     *   **不要在公式中使用双竖线 `\|`**（表示范数）：Markdown 解析器会将 `\|` 误识别为表格的管道转义符，剥离斜杠从而破坏 LaTeX 语法。必须使用标准 LaTeX 命令 **`\Vert`** 代替。
 

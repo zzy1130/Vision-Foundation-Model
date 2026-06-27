@@ -7,8 +7,8 @@ When editing code, writing READMEs, or creating documentation in this repository
 ## 1. Documentation & LaTeX Math Rendering Rules
 To ensure all mathematical formulas render perfectly on GitHub web and mobile, and remain readable in both light/dark mode themes:
 *   **Block Math (`$$ ... $$`) (Follow the `github-latex` Skill)**: Convert all block equations to centered images. Follow the workspace `github-latex` skill.
-    *   *Option 1 (CodeCogs)*: `<p align="center"><img src="https://latex.codecogs.com/svg.latex?%5Cbg_white%20URL_ENCODED_LATEX" alt="equation" /></p>` (fully URL-encoded).
-    *   *Option 2 (Local Rendering - Recommended for new/complex equations)*: Render the equations locally using matplotlib to PNG files under the subfolder's `images/` directory (with a white background) and link to them relatively (e.g. `images/eq1_ssi.png`).
+    *   *Standard Scheme*: Render all new equations locally using matplotlib to high-DPI PNG files under the subfolder's `images/` directory (with a white background to support dark mode) and link to them relatively (e.g. `images/eq1_ssi.png`).
+    *   *Backward Compatibility*: Existing formulas using the CodeCogs scheme may remain untouched, but all new equations must adopt the local rendering method.
     *   *Do NOT* use double pipe `\|` (for norms) in LaTeX. Use `\Vert` instead to avoid markdown table/pipe parser conflicts.
 *   **Inline Math**:
     *   For simple subscripts, variables, and Greek letters, use Unicode symbols and HTML `<sub>` tags to ensure instant rendering across all platforms without depending on MathJax/KaTeX.

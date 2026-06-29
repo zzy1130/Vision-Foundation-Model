@@ -233,6 +233,58 @@ class DDPMScheduler:
         return prev_sample
 
 
+class DDIMScheduler:
+    """
+    DDIM (Denoising Diffusion Implicit Model) scheduler for accelerated deterministic sampling.
+    """
+    def __init__(self, num_train_timesteps=1000, beta_start=0.0001, beta_end=0.02):
+        self.num_train_timesteps = num_train_timesteps
+        self.betas = torch.linspace(beta_start, beta_end, num_train_timesteps)
+        self.alphas = 1.0 - self.betas
+        self.alphas_cumprod = torch.cumprod(self.alphas, dim=0)
+
+    def add_noise(self, original_samples, noise, timesteps):
+        device = original_samples.device
+        alphas_cumprod = self.alphas_cumprod.to(device)
+        
+        sqrt_alpha_prod = torch.sqrt(alphas_cumprod[timesteps]).view(-1, 1, 1, 1)
+        sqrt_one_minus_alpha_prod = torch.sqrt(1.0 - alphas_cumprod[timesteps]).view(-1, 1, 1, 1)
+        
+        noisy_samples = sqrt_alpha_prod * original_samples + sqrt_one_minus_alpha_prod * noise
+        return noisy_samples
+
+    def step(self, model_output, timestep, sample, eta=0.0):
+        """
+        Performs a deterministic DDIM step (eta=0.0 means fully deterministic LDM sampling).
+        Formula: x_{t-1} = sqrt(alpha_bar_{t-1}) * x0_pred + sqrt(1 - alpha_bar_{t-1} - sigma_t^2) * noise_pred + sigma_t * noise
+        """
+        device = sample.device
+        idx = timestep.item()
+        alphas_cumprod = self.alphas_cumprod.to(device)
+        
+        alpha_cumprod = alphas_cumprod[idx]
+        alpha_cumprod_prev = alphas_cumprod[idx - 1] if idx > 0 else torch.tensor(1.0, device=device)
+        
+        # Calculate sigma_t based on eta
+        sigma_t = eta * torch.sqrt((1.0 - alpha_cumprod_prev) / (1.0 - alpha_cumprod)) * torch.sqrt(1.0 - alpha_cumprod / alpha_cumprod_prev)
+        
+        # 1. Predict x0 (reconstruct original latent)
+        pred_original_sample = (sample - torch.sqrt(1.0 - alpha_cumprod) * model_output) / torch.sqrt(alpha_cumprod)
+        pred_original_sample = torch.clamp(pred_original_sample, -1.0, 1.0)
+        
+        # 2. Reconstruct x_{t-1} direction pointing to x_t
+        pred_sample_direction = torch.sqrt(1.0 - alpha_cumprod_prev - sigma_t**2) * model_output
+        
+        # 3. Combine to get x_{t-1}
+        prev_sample = torch.sqrt(alpha_cumprod_prev) * pred_original_sample + pred_sample_direction
+        
+        if eta > 0.0:
+            noise = torch.randn_like(sample)
+            prev_sample = prev_sample + sigma_t * noise
+            
+        return prev_sample
+
+
 class StableDiffusion(nn.Module):
     """
     Stable Diffusion (Latent Diffusion) model.

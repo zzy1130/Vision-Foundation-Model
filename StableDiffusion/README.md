@@ -11,7 +11,7 @@
 4. [无分类器引导（Classifier-Free Guidance, CFG）原理](#4-无分类器引导classifier-free-guidance-cfg原理)
 5. [DiT (Diffusion Transformer) 架构变革与 AdaLN 调制](#5-dit-diffusion-transformer架构变革与-adaln-调制)
 6. [Video DiT：3D VAE、时空 Patch 与文本注入（Sora 核心）](#6-video-dit3d-vae时空-patch与文本注入sora核心)
-7. [机器人动作生成：Diffusion Policy 与 Flow Matching](#7-机器人动作生成diffusion-policy与-flow-matching)
+7. [机器人具身控制：Diffusion Policy 与 Flow Matching Policy](#7-机器人具身控制diffusion-policy-与-flow-matching-policy)
 8. [机器人大模型先驱：Robotics Diffusion Transformer (RDT-1B)](#8-机器人大模型先驱robotics-diffusion-transformer-rdt-1b)
 9. [代码库接口与 Demo 验证](#9-代码库接口与-demo-验证)
 10. [公式与图示对照速查](#10-公式与图示对照速查)
@@ -67,7 +67,7 @@
 *   <strong>代码实现</strong>: [dit.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/StableDiffusion/dit.py)
 *   <strong>核心机制</strong>:
     1.  <strong>Patchification（分块嵌入）</strong>: 将 2D Latent（如 32x32x4）切分为 p × p 的图像块（Patches），平坦化并映射为一维 Token 序列。
-    2.  <strong>AdaLN (Adaptive Layer Normalization)</strong>: 传统的 Transformer 使用层归一化（LayerNorm），而 DiT使用 AdaLN 将时间步和条件信息（如类别标签）注入每一层 Transformer Block 中。AdaLN 计算公式为：
+    2.  <strong>AdaLN (Adaptive Layer Normalization)</strong>: 传统的 Transformer 使用层归一化（LayerNorm），而 DiT 使用 AdaLN 将时间步和条件信息（如类别标签）注入每一层 Transformer Block 中。AdaLN 计算公式为：
         <p align="center"><img src="images/eq6_adaln.png" width="50%" alt="AdaLN Block" /></p>
         其中 γ(y) 和 β(y) 是由 timestep 和类别特征通过 MLP 回归得到的通道级缩放和偏移参数。
     3.  <strong>参数规模扩展（Scaling Up）</strong>: 彻底摆脱了 UNet 复杂的卷积 Skip Connection 限制，DiT 的参数规模和生成质量表现出极其完美的 Scaling Law。
@@ -84,11 +84,26 @@
 
 ---
 
-## 7. 机器人动作生成：Diffusion Policy 与 Flow Matching
+## 7. 机器人具身控制：Diffusion Policy 与 Flow Matching Policy
 
-在连续轨迹规划中，生成式模型用于建模高维非高斯动作分布。
-*   <strong>动作去噪扩散（Diffusion Policy）</strong>: 将连续的动作轨迹序列（未来 T<sub>p</sub> 步）作为去噪目标，在 1D 时间轴上进行时序去噪，使得机器人能够在避障、抓取等复杂非线性路径规划中完全拟合人类演练的多峰动作分布。详细代码实现：[diffusion_policy.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/StableDiffusion/diffusion_policy.py)。
-*   <strong>低延迟直线流（Flow Matching Policy）</strong>: 使用直线向量场映射（Straight CFM）取代加噪过程中的弯曲漂移轨迹。推理阶段通过简单的 Euler 积分快速求解 ODE，以极少的推理步数（如 5--10 步）完成闭环解算。详细代码实现：[flow_matching_policy.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/StableDiffusion/flow_matching_policy.py)。
+将扩散生成式模型应用在机器人控制决策中，主要为了解决模仿学习（Imitation Learning）中经典的行为克隆（Behavioral Cloning, BC）模型的致命短板。
+
+### 7.1 行为克隆的硬伤与动作扩散的解法
+*   <strong>行为克隆的致命硬伤</strong>: 人类示教数据往往是<strong>多模态（Multimodal）</strong>的（例如避开障碍物去抓一个杯子，人类既可以选择从左侧绕过，也可以从右侧绕过，这在数学上是一个典型的双峰概率分布）。如果使用确定性网络（MLP, 或者是 L2 Loss 优化的 CNN），网络为了最小化平均误差，会输出两个峰值的“平均动作”（即径直撞上中间的障碍物）。
+*   <strong>动作扩散策略（Diffusion Policy）</strong>: 将机器人未来的动作轨迹序列建模为一个条件去噪扩散模型。输入当前的相机帧和关节角状态作为条件，通过 1D 时间轴卷积 UNet，将原本随机无序的动作噪声一步步“推敲”为一条圆滑且合理的机械臂抓取路径，完美重现多模态动作的多峰边界。
+*   <strong>退避视界控制（Receding Horizon Control）</strong>: 机器人单次预测未来长达 T<sub>p</sub> 步（如 16 步）的动作轨迹，但只执行前 T<sub>e</sub> 步（如 8 步），接着立刻开始下一次去噪预测。这种“走一步看一步”的方式大幅强化了机器人的容错与纠偏性能。
+
+<p align="center"><img src="images/diffusion_policy_teaser.png" width="85%" alt="Diffusion Policy Robotics Teaser" /></p>
+<p align="center"><img src="images/diffusion_policy_multimodal.png" width="70%" alt="Multimodal Action Trajectory Learning" /></p>
+
+### 7.2 流匹配动作决策 (Flow Matching Policy)
+*   <strong>原理</strong>: 虽然动作扩散表现极佳，但由于其去噪轨迹是弯曲且包含随机项的，推理速度慢限制了高频交互。<strong>流匹配（Flow Matching）</strong>在噪声与动作轨迹之间构建了确定性的直线概率路径（Straight CFM）：
+    <p align="center"><img src="images/eq3_cfm_path.png" width="55%" alt="Flow Matching Path" /></p>
+*   <strong>极速控制</strong>: 训练网络去直接回归这股直线的速度矢量场，推理时直接使用 Euler 一阶常微分积分迭代：
+    <p align="center"><strong>a<sub>t+Δt</sub> = a<sub>t</sub> + Δt · v<sub>θ</sub>(a<sub>t</sub>, t, o)</strong></p>
+    仅需要 5 步积分更新即可生成质量顶级的流畅物理运动序列，大幅减少了计算耗时，极高贴合机器人的实时闭环控规。
+    流匹配回归优化的目标损失函数如下：
+    <p align="center"><img src="images/eq4_cfm_loss.png" width="55%" alt="Flow Matching Loss" /></p>
 
 ---
 
@@ -102,7 +117,7 @@
 *   任何异构机器人均可将其特定的控制量对齐填入这 128 维的对应维度中，未用到的维度置为 0，并利用 action mask 进行辅助屏蔽。这实现了异构机器人数据的无缝混合预训练。
 
 ### 8.2 多模态输入适配器（Multimodal Conditioning）
-RDT-1B 作为一个超大规模的条件扩散模型，利用了先进的视觉和语言模型进行场景理解：
+RDT-1B 作为一个超大规模的条件扩散模型，利用了先进的视觉 and 语言模型进行场景理解：
 1.  <strong>多视角视觉编码（SigLIP）</strong>: 机器人通常配备多个摄像头（如：胸部相机、左手腕相机、右手腕相机）。RDT 采用 `siglip-so400m-patch14-384` 提取各视角的空间特征，映射为 1152 维 of 视觉 Tokens。
 2.  <strong>指令文本编码（T5-XXL）</strong>: 采用大语言模型 `t5-v1_1-xxl` 对人类控制口令（如“帮我把红色的杯子递过来”）进行编码，输出 4096 维的语义 Tokens。
 3.  <strong>本体感受状态（Proprioception）</strong>: 机械臂当前的关节状态被直接投影为 128 维的 State Tokens。

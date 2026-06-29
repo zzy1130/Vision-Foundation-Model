@@ -67,7 +67,7 @@
     1.  <strong>Patchification（分块嵌入）</strong>: 将 2D Latent（如 32x32x4）切分为 p × p 的图像块（Patches），平坦化并映射为一维 Token 序列。
     2.  <strong>AdaLN (Adaptive Layer Normalization)</strong>: 传统的 Transformer 使用层归一化（LayerNorm），而 DiT 使用 AdaLN 将时间步和条件信息（如类别标签）注入每一层 Transformer Block 中。AdaLN 计算公式为：
         <p align="center"><img src="images/eq6_adaln.png" width="50%" alt="AdaLN Block" /></p>
-        其中 $\gamma(y)$ 和 $\beta(y)$ 是由 timestep 和类别特征通过 MLP 回归得到的通道级缩放和偏移参数。
+        其中 γ(y) 和 β(y) 是由 timestep 和类别特征通过 MLP 回归得到的通道级缩放和偏移参数。
     3.  <strong>参数规模扩展（Scaling Up）</strong>: 彻底摆脱了 UNet 复杂的卷积 Skip Connection 限制，DiT 的参数规模和生成质量表现出极其完美的 Scaling Law。
 
 ---
@@ -76,13 +76,9 @@
 *   <strong>代码实现</strong>: [video_dit.py](file:///Users/zhongzhiyi/Vision-Foundation-Model/StableDiffusion/video_dit.py)
 *   <strong>核心机制</strong>:
     1.  <strong>3D 变分自编码器 (VAE3D)</strong>: 将视频帧序列（B, F, C, H, W）输入 3D 卷积层，在空间维度压缩 8x 的同时，在<strong>时间（帧）维度进行压缩（如 2x）</strong>，从而获得时空隐表征（B, F_lat, C_lat, H_lat, W_lat）。
-    2.  <strong>时空分块（Spatiotemporal Patchification）</strong>: 提取 $p_t \times p_s \times p_s$（如 2 帧 $\times$ 2 像素 $\times$ 2 像素）的时空超像素块（3D Patches），映射为 1D 时空 Tokens。
+    2.  <strong>时空分块（Spatiotemporal Patchification）</strong>: 提取 p<sub>t</sub> × p<sub>s</sub> × p<sub>s</sub>（如 2 帧 × 2 像素 × 2 像素）的时空超像素块（3D Patches），映射为 1D 时空 Tokens。
     3.  <strong>时空联合自注意力（Spatiotemporal Self-Attention）</strong>: 所有的时空 Tokens 在 Transformer 中进行全局注意力交互，使得模型可以同时学习空间结构与跨帧的时间演变物理规律（World Model 的物理模拟基础）。
     4.  <strong>交叉注意力文本注入 (Text Injection)</strong>: 在每一层 Spatiotemporal DiT Block 中，插入一个专用的 Cross-Attention 层，让时空视频 Tokens 扮演 Query，去检索由 CLIP/T5 提取的文本 prompt 特征（Key/Value），将复杂的文本指令注入到视频生成的每一个像素时空轨道中。
-
-<p align="center">
-  <img src="images/pointmae_net.jpg" width="80%" style="display:none" alt="Placeholder" />
-</p>
 
 ---
 

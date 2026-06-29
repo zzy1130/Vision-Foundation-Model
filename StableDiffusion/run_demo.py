@@ -4,6 +4,7 @@ from diffusion_policy import DiffusionPolicy
 from flow_matching_policy import FlowMatchingPolicy
 from dit import DiffusionTransformer
 from video_dit import VideoDiT
+from rdt import RDTRunner
 
 def run_stable_diffusion_demo(device):
     print("\n--- Running Stable Diffusion (Latent Diffusion) Demo ---")
@@ -83,7 +84,6 @@ def run_flow_matching_policy_demo(device):
 
 def run_dit_demo(device):
     print("\n--- Running Diffusion Transformer (DiT) (ICCV 2023) Demo ---")
-    # input latent size 32x32, 4 channels (e.g. VAE latents)
     model = DiffusionTransformer(input_size=32, patch_size=2, in_channels=4, hidden_size=128, num_heads=4, depth=2, num_classes=10).to(device)
     model.eval()
     
@@ -104,18 +104,16 @@ def run_dit_demo(device):
 
 def run_video_dit_demo(device):
     print("\n--- Running Video Diffusion Transformer (Video DiT) Demo ---")
-    # Spatiotemporal latents shape: F=8 frames, C=4 channels, H=16, W=16
-    # Temporal patch=2 frames, spatial patch=2x2
     model = VideoDiT(latent_shape=(8, 4, 16, 16), patch_size=(2, 2, 2), hidden_size=128, cond_dim=128, num_heads=4, depth=2).to(device)
     model.eval()
     
     # Inputs: B=2
     z_t = torch.randn(2, 8, 4, 16, 16, device=device)
     t = torch.randint(0, 1000, (2, 1), device=device)
-    text_cond = torch.randn(2, 10, 128, device=device)  # 10 text tokens encoded to 128-dim
+    text_cond = torch.randn(2, 10, 128, device=device)
     
     # 1. Test Spatiotemporal VAE encode/decode
-    raw_video = torch.randn(2, 16, 3, 128, 128, device=device)  # B, F=16 frames, RGB, 128x128 resolution
+    raw_video = torch.randn(2, 16, 3, 128, 128, device=device)
     with torch.no_grad():
         latents_vae = model.vae_3d.encode(raw_video)
         reconstructed_video = model.vae_3d.decode(latents_vae)
@@ -132,6 +130,40 @@ def run_video_dit_demo(device):
     print("Video DiT executed successfully!")
 
 
+def run_rdt_demo(device):
+    print("\n--- Running Robotics Diffusion Transformer (RDT-1B) Demo ---")
+    # action_dim=128 (unified action space), prediction horizon=64 steps
+    # lang_token_dim=4096 (T5-XXL), img_token_dim=1152 (SigLIP), state_token_dim=128 (proprioception)
+    model = RDTRunner(
+        action_dim=128, pred_horizon=64,
+        lang_token_dim=4096, img_token_dim=1152, state_token_dim=128,
+        max_lang_cond_len=32, img_cond_len=196
+    ).to(device)
+    model.eval()
+    
+    # Mock inputs: B=2
+    actions = torch.randn(2, 64, 128, device=device)
+    t = torch.randint(0, 100, (2, 1), device=device)
+    lang_cond = torch.randn(2, 32, 4096, device=device)
+    img_cond = torch.randn(2, 196, 1152, device=device)
+    state_traj = torch.randn(2, 1, 128, device=device)
+    
+    # 1. Test training forward pass (compute loss)
+    loss = model(actions, t, lang_cond, img_cond, state_traj)
+    
+    # 2. Test action sampling
+    with torch.no_grad():
+        pred_actions = model.predict_action(lang_cond, img_cond, state_traj, num_inference_steps=5)
+        
+    print(f"Input Unified Actions Shape: {actions.shape}")
+    print(f"Input T5 Language Cond Shape: {lang_cond.shape}")
+    print(f"Input SigLIP Vision Cond Shape: {img_cond.shape}")
+    print(f"Input Proprioception State Shape: {state_traj.shape}")
+    print(f"Training Trajectory Loss: {loss.item():.4f}")
+    print(f"Generated Actions Trajectory Shape: {pred_actions.shape}")
+    print("RDT-1B model executed successfully!")
+
+
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
@@ -141,5 +173,6 @@ if __name__ == '__main__':
     run_flow_matching_policy_demo(device)
     run_dit_demo(device)
     run_video_dit_demo(device)
+    run_rdt_demo(device)
     
-    print("\nAll Generative and Policy model demos completed successfully!")
+    print("\nAll Generative, Policy, and Foundation model demos completed successfully!")
